@@ -1,21 +1,13 @@
-# The Site Configuration
+# Site Configuration
+remote_theme: cotes2020/jekyll-theme-chirpy
 
-# Import the theme
-theme: jekyll-theme-chirpy
-
-# The language of the webpage
 lang: ko-KR
-
-# Change to your timezone
 timezone: Asia/Seoul
 
-# jekyll-seo-tag settings
 title: RoCo Tech Blog
 tagline: Romantic Coders의 개발 여정
-description: >-
-  서비스 개발 회고와 기술 경험을 공유하는 RoCo 팀 블로그
+description: 서비스 개발 회고와 기술 경험을 공유하는 RoCo 팀 블로그
 
-# Fill in the protocol & hostname for your site
 url: "https://romantic-coders.github.io"
 
 github:
@@ -27,12 +19,11 @@ social:
   links:
     - https://github.com/Romantic-Coders
 
-# Site Author - Default author
 author:
   name: RoCo Team
   bio: 낭만적인 코더들의 모임
 
-# Multiple Authors Configuration
+# Multiple Authors
 authors:
   KeunyoungSong:
     name: "송근영"
@@ -79,51 +70,20 @@ authors:
         icon: "fab fa-github"
         url: "https://github.com/j1nzero"
 
-# Theme mode: [light|dark]
 theme_mode: dark
-
-# The CDN endpoint for images
-img_cdn:
-
-# Avatar image
 avatar: /assets/img/roco-logo.png
-
-# Boolean type, the global switch for TOC in posts
 toc: true
-
-comments:
-  active: giscus
-  giscus:
-    repo: Romantic-Coders/romantic-coders.github.io
-    repo_id: # GitHub repo ID
-    category: # Discussion category name
-    category_id: # Discussion category ID
-    mapping: pathname
-    input_position: bottom
-    lang: ko
-
-# Self-hosted static assets
-assets:
-  self_host:
-    enabled: false
-
-pwa:
-  enabled: true
-
 paginate: 10
-
-# Docs: https://jekyllrb.com/docs/configuration/markdown/
 markdown: kramdown
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-seo-tag
 
 kramdown:
   syntax_highlighter: rouge
-  syntax_highlighter_opts:
-    css_class: highlight
-    span:
-      line_numbers: false
-    block:
-      line_numbers: true
-      start_line: 1
 
 collections:
   tabs:
@@ -140,43 +100,8 @@ defaults:
       toc: true
       permalink: /posts/:title/
   - scope:
-      path: _drafts
-    values:
-      comments: false
-  - scope:
       path: ""
       type: tabs
     values:
       layout: page
       permalink: /:title/
-
-sass:
-  style: compressed
-
-compress_html:
-  clippings: all
-  comments: all
-  endings: all
-  profile: false
-  blanklines: false
-  ignore:
-    envs: [development]
-
-exclude:
-  - "*.gem"
-  - "*.gemspec"
-  - docs
-  - tools
-  - README.md
-  - LICENSE
-  - rollup.config.js
-  - package*.json
-
-jekyll-archives:
-  enabled: [categories, tags]
-  layouts:
-    category: category
-    tag: tag
-  permalinks:
-    tag: /tags/:name/
-    category: /categories/:name/
