@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gem "jekyll", "~> 3.10"
+gem "jekyll", "~> 4.3"
 gem "jekyll-remote-theme"
 gem "jekyll-paginate"
 gem "jekyll-sitemap"
@@ -9,6 +9,8 @@ gem "jekyll-archives"
 gem "jekyll-include-cache"
 gem "kramdown-parser-gfm"
 gem "webrick"
+gem "csv"
+gem "base64"
 
 group :test do
   gem "html-proofer", "~> 5.0"
