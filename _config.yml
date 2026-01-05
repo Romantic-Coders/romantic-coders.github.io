@@ -82,6 +82,7 @@ plugins:
   - jekyll-sitemap
   - jekyll-seo-tag
   - jekyll-archives
+  - jekyll-include-cache
 
 kramdown:
   syntax_highlighter: rouge
