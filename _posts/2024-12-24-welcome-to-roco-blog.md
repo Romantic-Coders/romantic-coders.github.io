@@ -27,7 +27,7 @@ Romantic Coders 팀의 기술 블로그를 시작합니다.
 
 - **Backend**: 송근영, 허동석, 김예림
 - **Frontend**: 송근영, 김하연
-- **Design**: j1nzero
+- **Design**: 고진영
 
 ## 기술 스택
 

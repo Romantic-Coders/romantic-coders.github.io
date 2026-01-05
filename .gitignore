@@ -5,6 +5,8 @@ Gemfile.lock
 
 # Jekyll cache
 .jekyll-cache
+.jekyll-metadata
+.sass-cache
 _site
 
 # RubyGems
@@ -13,10 +15,12 @@ _site
 # NPM dependencies
 node_modules
 package-lock.json
+yarn.lock
 
 # IDE configurations
 .idea
 .vscode
+.claude
 
 # Misc
 assets/js/dist
@@ -24,3 +28,11 @@ assets/js/dist
 *.swo
 *~
 .DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
