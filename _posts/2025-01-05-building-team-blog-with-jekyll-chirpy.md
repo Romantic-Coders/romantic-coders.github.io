@@ -41,14 +41,16 @@ Connectify 프로젝트를 진행하면서 다양한 기술적 도전과 학습�
 **작동 방식:**
 
 ```
-romantic-coders.github.io 저장소
-├── _posts/2025-01-05-title.md  (마크다운 파일)
-├── _config.yml                  (설정 파일)
-└── index.html                   (메인 페이지)
-              ↓
-    GitHub Pages가 처리
-              ↓
-https://romantic-coders.github.io 에서 접속 가능
+저장소의 파일들 → GitHub Pages 처리 → https://romantic-coders.github.io 배포
+```
+
+**저장소 구조 예시:**
+
+```console
+romantic-coders.github.io/
+├── _posts/2025-01-05-title.md  # 마크다운 파일
+├── _config.yml                  # 설정 파일
+└── index.html                   # 메인 페이지
 ```
 
 ### Jekyll이란?
@@ -103,7 +105,7 @@ GitHub Actions는 GitHub에서 제공하는 **CI/CD(Continuous Integration/Conti
 **우리 블로그의 CI/CD 프로세스:**
 
 ```
-코드 Push → GitHub Actions 실행 → Jekyll 빌드 → GitHub Pages 배포
+코드 Push → GitHub Actions 실행 → Jekyll 빌드 → GitHub Pages 배포 (약 1-2분 소요)
 ```
 
 ### 두 가지 배포 방식의 차이
@@ -125,11 +127,9 @@ GitHub Pages를 활성화하면 자동으로 생성되는 시스템 워크플로
 초기 시도(2024-12-24):
 ```
 pages build and deployment 실행
- ↓
-jekyll-archives 플러그인 없음 ❌
-jekyll-include-cache 플러그인 없음 ❌
- ↓
-빌드 실패
+  → jekyll-archives 플러그인 없음 ❌
+  → jekyll-include-cache 플러그인 없음 ❌
+  → 빌드 실패
 ```
 
 GitHub의 기본 빌드는 안전한 플러그인만 허용하기 때문에 Chirpy 테마가 요구하는 플러그인들을 사용할 수 없었습니다.
@@ -146,44 +146,30 @@ GitHub의 기본 빌드는 안전한 플러그인만 허용하기 때문에 Chir
 
 ### 현재 배포 프로세스 전체 흐름
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    로컬 개발 환경                          │
-│  _posts/2025-01-05-new-post.md 작성                      │
-│              ↓                                           │
-│     git add, commit, push                                │
-└─────────────────────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────┐
-│                 GitHub Repository                        │
-│         (romantic-coders.github.io)                      │
-│                                                          │
-│  .github/workflows/pages-deploy.yml ← 감지               │
-└─────────────────────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────┐
-│              GitHub Actions 실행                         │
-│  ┌──────────────────────────────────┐                   │
-│  │ Job 1: build                     │                   │
-│  │  1. Ruby 3.2 설치                │                   │
-│  │  2. bundle install               │                   │
-│  │  3. jekyll build                 │                   │
-│  │     → _site/ 폴더 생성            │                   │
-│  │  4. artifact 업로드              │                   │
-│  └──────────────────────────────────┘                   │
-│                ↓                                         │
-│  ┌──────────────────────────────────┐                   │
-│  │ Job 2: deploy                    │                   │
-│  │  1. artifact 다운로드             │                   │
-│  │  2. GitHub Pages에 배포           │                   │
-│  └──────────────────────────────────┘                   │
-└─────────────────────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────┐
-│              GitHub Pages                                │
-│  https://romantic-coders.github.io                      │
-│         (배포된 웹사이트)                                 │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A[로컬 개발 환경<br/>_posts/2025-01-05-new-post.md 작성] --> B[git add, commit, push]
+    B --> C[GitHub Repository<br/>romantic-coders.github.io]
+    C --> D[.github/workflows/pages-deploy.yml 감지]
+    D --> E[GitHub Actions 실행]
+
+    E --> F[Job 1: build]
+    F --> F1[1. Ruby 3.2 설치]
+    F1 --> F2[2. bundle install]
+    F2 --> F3[3. jekyll build<br/>→ _site/ 폴더 생성]
+    F3 --> F4[4. artifact 업로드]
+
+    F4 --> G[Job 2: deploy]
+    G --> G1[1. artifact 다운로드]
+    G1 --> G2[2. GitHub Pages에 배포]
+
+    G2 --> H[배포 완료<br/>https://romantic-coders.github.io]
+
+    style A fill:#e1f5fe
+    style H fill:#c8e6c9
+    style E fill:#fff9c4
+    style F fill:#ffe0b2
+    style G fill:#ffe0b2
 ```
 
 **소요 시간:** push 후 약 1-2분 내 배포 완료
@@ -583,7 +569,7 @@ defaults:
 
 ### 디렉토리 구조
 
-```
+```console
 romantic-coders.github.io/
 ├── .github/
 │   └── workflows/
@@ -817,19 +803,21 @@ git push origin main
 
 **배포 과정:**
 
-1. **GitHub Actions 자동 실행** (약 30초~1분)
-   - Ruby 설치
-   - 의존성 설치
-   - Jekyll 빌드
-   - Pages 배포
+```mermaid
+graph LR
+    A[git push] --> B[GitHub Actions 실행<br/>30초~1분]
+    B --> C[배포 완료]
+    C --> D[웹사이트 확인<br/>1-2분 후]
 
-2. **배포 확인**
-   - GitHub 저장소 > Actions 탭에서 진행 상황 확인
-   - 초록색 체크 표시가 나타나면 배포 완료
+    style A fill:#e1f5fe
+    style B fill:#fff9c4
+    style C fill:#c8e6c9
+    style D fill:#c8e6c9
+```
 
-3. **웹사이트 확인** (배포 완료 후 1-2분)
-   - https://romantic-coders.github.io 접속
-   - 새 게시물 확인
+**확인 방법:**
+1. GitHub 저장소 > Actions 탭 > 초록색 체크 확인
+2. https://romantic-coders.github.io 접속하여 새 게시물 확인
 
 ## 7. 트러블슈팅 팁
 
