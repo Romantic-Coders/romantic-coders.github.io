@@ -10,7 +10,7 @@
 - **허동석** (@Dsanj97) - Backend Developer
 - **김예림** (@lilble) - Backend Developer
 - **김하연** (@kimhayeon00) - Frontend Developer
-- **j1nzero** (@j1nzero) - Designer
+- **고진영** (@j1nzero) - Designer
 
 ## 기술 스택
 
