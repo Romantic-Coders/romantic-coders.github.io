@@ -5,7 +5,9 @@ gem "jekyll-remote-theme"
 gem "jekyll-paginate"
 gem "jekyll-sitemap"
 gem "jekyll-seo-tag"
+gem "jekyll-archives"
 gem "kramdown-parser-gfm"
+gem "webrick"
 
 group :test do
   gem "html-proofer", "~> 5.0"
