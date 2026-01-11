@@ -85,6 +85,11 @@ plugins:
 
 kramdown:
   syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: plaintext
+    line_numbers: false      # 인라인 코드에는 줄 번호 없음
+    block:
+      line_numbers: true     # 코드 블록에만 줄 번호 표시
 
 collections:
   tabs:

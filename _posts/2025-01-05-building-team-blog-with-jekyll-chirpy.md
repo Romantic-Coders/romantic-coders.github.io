@@ -4,6 +4,7 @@ author: KeunyoungSong
 date: 2025-01-05 23:00:00 +0900
 categories: [개발, 블로그]
 tags: [jekyll, github-pages, chirpy, github-actions, ci-cd]
+mermaid: true
 ---
 
 # Jekyll + Chirpy로 팀 기술 블로그 구축하기
@@ -165,11 +166,11 @@ graph TD
 
     G2 --> H[배포 완료<br/>https://romantic-coders.github.io]
 
-    style A fill:#e1f5fe
-    style H fill:#c8e6c9
-    style E fill:#fff9c4
-    style F fill:#ffe0b2
-    style G fill:#ffe0b2
+    style A fill:#e1f5fe,color:#0b0f14
+    style H fill:#c8e6c9,color:#0b0f14
+    style E fill:#fff9c4,color:#0b0f14
+    style F fill:#ffe0b2,color:#0b0f14
+    style G fill:#ffe0b2,color:#0b0f14
 ```
 
 **소요 시간:** push 후 약 1-2분 내 배포 완료
@@ -303,69 +304,59 @@ GitHub의 기본 빌드 방식으로는 Chirpy 테마의 모든 의존성을 처
 ```yaml
 name: Deploy Jekyll site to Pages
 
-# main 브랜치에 push될 때 자동 실행
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:  # 수동 실행도 가능
+  workflow_dispatch:
 
-# GitHub Pages 배포를 위한 권한 설정
 permissions:
-  contents: read      # 저장소 읽기
-  pages: write        # Pages 쓰기
-  id-token: write     # OIDC 토큰 발급
+  contents: read
+  pages: write
+  id-token: write
 
-# 동시 실행 방지 (하나씩 순차 실행)
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # 빌드 작업
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. 코드 체크아웃 (전체 히스토리 포함)
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 전체 git 히스토리 (sitemap 생성용)
+          fetch-depth: 0
 
-      # 2. Ruby 3.2 설치 및 의존성 캐싱
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
-          bundler-cache: true  # Gemfile.lock 기반 자동 캐싱
+          bundler-cache: true
 
-      # 3. GitHub Pages 설정
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
 
-      # 4. Jekyll 빌드 (프로덕션 모드)
       - name: Build with Jekyll
         run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
         env:
-          JEKYLL_ENV: production  # 프로덕션 환경 변수
+          JEKYLL_ENV: production
 
-      # 5. 빌드 결과물 업로드
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
-  # 배포 작업 (빌드 완료 후 실행)
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build  # build job이 성공해야 실행
+    needs: build
     steps:
-      # 6. GitHub Pages에 배포
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 ```
+{: file=".github/workflows/pages-deploy.yml" }
 
 **주요 포인트:**
 
@@ -374,6 +365,548 @@ jobs:
 3. **환경 변수**: `JEKYLL_ENV: production`으로 최적화된 빌드
 4. **전체 히스토리**: `fetch-depth: 0`으로 sitemap 생성에 필요한 날짜 정보 확보
 
+### 문제 5: 로컬 테스트 환경 구축
+
+배포는 성공했지만, 로컬에서 블로그를 미리 확인하고 싶었습니다. 그런데 로컬 테스트 환경을 구축하는 과정에서 Ruby 버전 문제를 마주했습니다.
+
+**첫 번째 시도: jekyll serve 실행**
+
+```bash
+bundle exec jekyll serve
+```
+
+**에러:**
+
+```
+bundler: command not found: jekyll
+Install missing gem executables with `bundle install`
+```
+
+**두 번째 시도: bundle install**
+
+```bash
+bundle install
+```
+
+**에러:**
+
+```
+Bundler could not find compatible versions for gem "ruby":
+  html-proofer (~> 5.0) requires ruby (>= 3.1, < 4.0)
+
+Current Ruby version: 2.6.10
+```
+
+**원인:**
+
+macOS에 기본 설치된 Ruby 2.6.10을 사용하고 있었는데, Chirpy 테마와 의존성들이 Ruby 3.0 이상을 요구했습니다.
+
+- **jekyll-theme-chirpy 7.4**: Ruby >= 3.1 필요
+- **html-proofer 5.0**: Ruby >= 3.1 필요
+- **ffi (의존성)**: Ruby >= 3.0 필요
+
+**해결: rbenv로 Ruby 버전 관리**
+
+macOS에서 Ruby 버전을 관리하는 가장 일반적인 방법은 `rbenv`를 사용하는 것입니다.
+
+**1. rbenv 설치 (Homebrew 사용)**
+
+```bash
+# rbenv와 ruby-build 설치
+brew install rbenv ruby-build
+
+# zsh 설정 파일에 rbenv 초기화 추가
+echo 'eval "$(rbenv init - zsh)"' >> ~/.zshrc
+
+# 터미널 재시작 또는 설정 다시 로드
+source ~/.zshrc
+```
+
+**2. Ruby 3.2.0 설치**
+
+```bash
+# Ruby 3.2.0 설치 (약 5-10분 소요)
+rbenv install 3.2.0
+
+# 전역 Ruby 버전을 3.2.0으로 설정
+rbenv global 3.2.0
+
+# 버전 확인
+ruby --version
+# ruby 3.2.0 (2022-12-25 revision a528908271) [arm64-darwin24]
+```
+
+**3. 의존성 설치 및 서버 실행**
+
+```bash
+# 프로젝트 디렉토리로 이동
+cd romantic-coders.github.io
+
+# Jekyll 및 모든 의존성 설치
+bundle install
+
+# 로컬 개발 서버 실행
+bundle exec jekyll serve
+```
+
+**성공:**
+
+```
+Configuration file: /Users/.../romantic-coders.github.io/_config.yml
+            Source: /Users/.../romantic-coders.github.io
+       Destination: /Users/.../romantic-coders.github.io/_site
+ Incremental build: disabled. Enable with --incremental
+      Generating...
+                    done in 1.442 seconds.
+ Auto-regeneration: enabled for '/Users/.../romantic-coders.github.io'
+    Server address: http://127.0.0.1:4000
+  Server running... press ctrl-c to stop.
+```
+
+**로컬 테스트 방법:**
+
+1. 브라우저에서 `http://127.0.0.1:4000` 접속
+2. 파일을 수정하면 자동으로 재빌드되어 바로 확인 가능
+3. 서버 종료: `Ctrl + C`
+
+**팀원들을 위한 Ruby 버전 관리 가이드:**
+
+```mermaid
+graph TD
+    A[로컬에서 블로그 테스트 필요] --> B{Ruby 버전 확인<br/>ruby --version}
+    B -->|3.0 이상| C[bundle install]
+    B -->|3.0 미만| D[rbenv 설치 필요]
+
+    D --> E[brew install rbenv]
+    E --> F[rbenv install 3.2.0]
+    F --> G[rbenv global 3.2.0]
+    G --> C
+
+    C --> H[bundle exec jekyll serve]
+    H --> I[http://127.0.0.1:4000 접속]
+
+    style A fill:#e1f5fe,color:#0b0f14
+    style I fill:#c8e6c9,color:#0b0f14
+    style D fill:#fff9c4,color:#0b0f14
+    style H fill:#c8e6c9,color:#0b0f14
+```
+
+**왜 GitHub Actions는 성공했고 로컬은 실패했나?**
+
+GitHub Actions 워크플로우에서 명시적으로 Ruby 3.2를 설정했기 때문입니다:
+
+```yaml
+- name: Setup Ruby
+  uses: ruby/setup-ruby@v1
+  with:
+    ruby-version: '3.2'  # 항상 3.2 버전 사용
+    bundler-cache: true
+```
+
+반면 로컬 환경은 시스템에 설치된 Ruby를 사용하므로, 버전이 맞지 않으면 에러가 발생합니다.
+
+**추가 이슈: rbenv 설정 후에도 시스템 Ruby 사용**
+
+rbenv를 설치하고 Ruby 3.2.0을 설정했는데도 여전히 시스템 Ruby 2.6.10이 사용되는 경우가 있습니다.
+
+```bash
+ruby --version
+# ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin24]
+
+which ruby
+# /usr/bin/ruby  # 시스템 Ruby!
+```
+
+**원인:**
+
+터미널이 rbenv를 인식하지 못하고 있습니다. `~/.zshrc`에 rbenv 초기화 코드를 추가했지만, 현재 터미널 세션에는 적용되지 않았거나 PATH 설정이 제대로 되지 않았습니다.
+
+**해결 방법 1: 터미널 재시작**
+
+```bash
+# 터미널을 완전히 종료하고 다시 시작
+# 또는
+source ~/.zshrc
+
+# 확인
+ruby --version
+# ruby 3.2.0 (2022-12-25 revision a528908271) [arm64-darwin24]
+```
+
+**해결 방법 2: 현재 세션에서 즉시 적용**
+
+터미널을 재시작하지 않고 현재 세션에서 rbenv를 사용하려면:
+
+```bash
+eval "$(rbenv init - zsh)"
+
+# 확인
+ruby --version
+# ruby 3.2.0 (2022-12-25 revision a528908271) [arm64-darwin24]
+
+which ruby
+# /Users/username/.rbenv/shims/ruby  # rbenv의 Ruby!
+
+# 이제 Jekyll 서버 실행
+bundle exec jekyll serve
+```
+
+**중요한 교훈:**
+
+1. **로컬과 CI/CD 환경의 일관성**: 가능한 한 로컬 환경을 CI/CD 환경과 동일하게 맞추는 것이 중요합니다
+2. **Ruby 버전 관리**: rbenv, rvm 등의 버전 관리 도구 사용이 필수적입니다
+3. **환경 변수 초기화**: rbenv 설치 후 반드시 터미널 재시작 또는 `source ~/.zshrc` 필요
+4. **PATH 우선순위 확인**: `which ruby`로 실제 사용 중인 Ruby 경로 확인
+5. **팀원 온보딩**: 새로운 팀원이 로컬 환경을 쉽게 구축할 수 있도록 명확한 가이드가 필요합니다
+
+### 로컬 테스트 서버 동작 원리
+
+`bundle exec jekyll serve` 명령어는 로컬 컴퓨터에서 웹 서버를 실행합니다.
+
+**전체 동작 흐름:**
+
+```mermaid
+graph LR
+    A[bundle exec jekyll serve] --> B[Jekyll 빌드 프로세스]
+    B --> C[_site/ 폴더 생성]
+    C --> D[WEBrick 서버 시작]
+    D --> E[포트 4000 대기]
+    E --> F[브라우저에서<br/>127.0.0.1:4000 접속]
+
+    style A fill:#e1f5fe,color:#0b0f14
+    style D fill:#fff9c4,color:#0b0f14
+    style F fill:#c8e6c9,color:#0b0f14
+```
+
+**단계별 설명:**
+
+**1. 빌드 단계**
+
+Jekyll이 프로젝트의 모든 파일을 처리합니다:
+
+```
+_posts/2025-01-05-building-team-blog.md (Markdown)
+    ↓ Jekyll 처리
+    ↓ 1. Markdown → HTML 변환
+    ↓ 2. Liquid 템플릿 적용
+    ↓ 3. SCSS → CSS 컴파일
+    ↓
+_site/posts/building-team-blog/index.html (정적 HTML)
+```
+
+**2. 서버 시작**
+
+- WEBrick(Ruby 기본 웹 서버)가 `127.0.0.1:4000`에서 시작
+- `_site/` 폴더의 정적 파일들을 서빙
+- HTTP 요청을 받아 해당 파일을 반환
+
+**3. 자동 재빌드 (Auto-regeneration)**
+
+파일 변경 감지 시스템이 작동합니다:
+
+```bash
+# 파일 수정 및 저장
+$ vim _posts/2025-01-05-building-team-blog.md
+# (수정 후 Cmd+S)
+
+# 터미널 출력:
+      Regenerating: 1 file(s) changed at 2025-01-05 15:30:42
+                    _posts/2025-01-05-building-team-blog.md
+                    ...done in 0.82 seconds.
+
+# 브라우저에서 새로고침하면 변경사항 즉시 확인!
+```
+
+**파일 구조 비교:**
+
+```console
+# 소스 파일 (작성하는 파일)
+romantic-coders.github.io/
+├── _posts/
+│   └── 2025-01-05-building-team-blog.md    # Markdown 원본
+├── _config.yml                              # 설정
+└── assets/
+    └── css/
+        └── main.scss                        # SCSS 원본
+
+# 빌드 결과물 (_site/ 폴더, .gitignore에 등록됨)
+_site/
+├── posts/
+│   └── building-team-blog/
+│       └── index.html                       # 변환된 HTML
+├── assets/
+│   └── css/
+│       └── main.css                         # 컴파일된 CSS
+└── index.html
+```
+
+**실시간 개발 워크플로우:**
+
+```mermaid
+graph TD
+    A[에디터에서 파일 수정] --> B[파일 저장<br/>Cmd+S]
+    B --> C[Jekyll 변경 감지]
+    C --> D[자동 재빌드<br/>1-2초]
+    D --> E[브라우저 새로고침<br/>F5]
+    E --> F[변경사항 확인]
+    F --> A
+
+    style A fill:#e1f5fe,color:#0b0f14
+    style D fill:#fff9c4,color:#0b0f14
+    style F fill:#c8e6c9,color:#0b0f14
+```
+
+**자동 재빌드되는 파일:**
+- `_posts/` - 블로그 게시물
+- `_pages/` - 일반 페이지
+- `_layouts/` - 레이아웃 템플릿
+- `_includes/` - 재사용 컴포넌트
+- `assets/` - CSS, JavaScript, 이미지
+
+**재빌드되지 않는 파일 (서버 재시작 필요):**
+- `_config.yml` - Jekyll 설정 파일
+- `Gemfile` - Ruby 의존성 파일
+
+**_config.yml 수정 시:**
+
+```bash
+# 1. _config.yml 수정 후 저장
+# → 자동 재빌드 안 됨!
+
+# 2. 서버 종료
+Ctrl + C
+
+# 3. 서버 재시작
+bundle exec jekyll serve
+
+# 4. 브라우저 새로고침하면 설정 변경사항 반영
+```
+
+**로컬 서버 vs GitHub Pages 비교:**
+
+| 구분 | 로컬 서버 | GitHub Pages |
+|------|----------|--------------|
+| **위치** | 내 컴퓨터 (127.0.0.1) | GitHub 서버 |
+| **빌드** | 내 컴퓨터에서 Jekyll 실행 | GitHub Actions에서 실행 |
+| **접근 권한** | 나만 접근 가능 | 전 세계 누구나 접근 |
+| **URL** | http://127.0.0.1:4000 | https://romantic-coders.github.io |
+| **목적** | 개발/테스트 | 실제 배포 |
+| **재빌드** | 파일 저장 시 즉시 (1-2초) | git push 시 1-2분 후 |
+| **디버깅** | 터미널에서 즉시 확인 | Actions 로그 확인 필요 |
+
+**브라우저 캐시 관련 팁:**
+
+CSS나 JavaScript 변경사항이 안 보일 때:
+
+- **일반 새로고침**: `F5` 또는 `Cmd+R`
+- **강력 새로고침** (캐시 무시): `Cmd+Shift+R` (Mac) 또는 `Ctrl+Shift+R` (Windows/Linux)
+
+**추가 유용한 옵션:**
+
+```bash
+# 초안(draft) 게시물도 포함하여 서버 실행
+bundle exec jekyll serve --drafts
+
+# 미래 날짜 게시물도 표시
+bundle exec jekyll serve --future
+
+# 특정 포트에서 실행
+bundle exec jekyll serve --port 4001
+
+# 증분 빌드 활성화 (빌드 속도 향상)
+bundle exec jekyll serve --incremental
+```
+
+### 문제 6: YAML 코드 블록 줄바꿈 문제
+
+로컬 테스트 환경을 구축하고 나니 또 다른 문제가 발생했습니다. 블로그 글에 GitHub Actions 워크플로우 YAML 코드를 작성했는데, **모든 줄바꿈과 인덴트가 사라지고 한 줄로 표시**되는 것이었습니다.
+
+**증상:**
+
+```yaml
+name: Deploy Jekyll site to Pages on: push: branches: ["main"] workflow_dispatch: permissions: contents: read pages: write ...
+```
+
+이렇게 모든 내용이 한 줄에 표시되어 코드를 읽을 수 없었습니다. 다른 언어(shell, ruby 등) 코드 블록은 정상적으로 작동하는데 유독 YAML만 문제가 있었습니다.
+
+**시도했던 실패한 해결 방법:**
+
+1. **raw 태그 추가** - Liquid의 raw 태그로 코드 블록을 감싸봤지만 효과가 없었습니다. Liquid 파싱 문제가 아니었습니다.
+
+2. **언어 지정 제거** - 백틱 3개만 사용하고 yaml을 제거해봤지만 오히려 더 나빠졌습니다. 신택스 하이라이팅도 사라졌습니다.
+
+3. **CSS `white-space: pre-wrap` 추가** - CSS로 `.highlight code { white-space: pre-wrap !important; }` 를 추가했지만 효과가 없었습니다. HTML 자체에 줄바꿈이 없었습니다.
+
+4. **HTML `<pre><code>` 태그 직접 사용** - `<pre><code class="language-yaml">` 태그를 직접 사용했지만 코드 블록 UI가 사라지고 일반 텍스트처럼 표시되었습니다.
+
+5. **`<div>` 태그로 파일명 헤더 추가** - `<div class="code-header">` 태그를 코드 블록 앞에 추가했지만 kramdown이 코드 블록을 제대로 파싱하지 못했습니다.
+
+**근본 원인 발견:**
+
+다른 Chirpy 블로그들을 조사하다가 **줄 번호가 있는 코드 블록은 정상 작동**한다는 것을 발견했습니다!
+
+Chirpy 테마는 Rouge 신택스 하이라이터를 사용하는데, 줄 번호가 비활성화된 상태에서는 코드 블록이 테이블 구조 없이 렌더링되면서 줄바꿈 처리에 문제가 생기는 것이었습니다.
+
+**해결책:**
+
+`_config.yml`에 kramdown 줄 번호 설정을 추가했습니다:
+
+```yaml
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: plaintext
+    line_numbers: false      # 인라인 코드에는 줄 번호 없음
+    block:
+      line_numbers: true     # 코드 블록에만 줄 번호 표시
+```
+{: file="_config.yml" }
+
+**Chirpy 파일명 표시 문법:**
+
+추가로 Chirpy의 공식 파일명 표시 문법도 적용했습니다. 코드 블록 닫는 백틱 3개 바로 다음 줄에 `{: file="파일경로" }` 속성을 추가하면 코드 블록 상단에 파일명이 표시됩니다.
+
+중요한 점은 `{: file="..." }` 속성이 **코드 블록 닫는 백틱 다음 줄**에 와야 한다는 것입니다!
+
+**결과:**
+
+이제 YAML 코드 블록이 줄 번호와 함께 정상적으로 렌더링됩니다:
+
+```yaml
+name: Deploy Jekyll site to Pages
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+```
+{: file=".github/workflows/pages-deploy.yml" }
+
+### 문제 7: 인라인 코드에 줄 번호 표시 문제
+
+YAML 코드 블록 문제를 해결했더니 이번에는 **본문 중 인라인 코드에도 줄 번호가 표시**되는 문제가 발생했습니다.
+
+**증상:**
+
+"두 개의 Job 분리: `build`와 `deploy`를 분리하여..."
+
+이렇게 작성한 부분이 다음과 같이 렌더링되었습니다:
+
+```
+두 개의 Job 분리: [1] build 와 [1] deploy 를 분리하여...
+```
+
+본문 중간의 변수명이나 명령어 같은 한 줄 코드에도 줄 번호가 붙어서 UI가 깨져 보이고 가독성이 크게 떨어졌습니다.
+
+**원인:**
+
+처음 kramdown 설정에서 `line_numbers: true`만 설정했더니 **모든 코드 (인라인 + 블록)**에 줄 번호가 적용되었습니다.
+
+```yaml
+# 잘못된 설정
+kramdown:
+  syntax_highlighter_opts:
+    line_numbers: true    # 모든 코드에 줄 번호!
+```
+
+**해결책:**
+
+전역 설정과 블록 설정을 분리했습니다:
+
+```yaml
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: plaintext
+    line_numbers: false      # 인라인 코드에는 줄 번호 없음
+    block:
+      line_numbers: true     # 코드 블록에만 줄 번호 표시
+```
+{: file="_config.yml" }
+
+**결과:**
+
+이제 인라인 코드 `` `build` ``, `` `deploy` ``, `` `bundler-cache: true` ``는 줄 번호 없이 깔끔하게 표시되고, 멀티라인 코드 블록만 줄 번호와 함께 표시됩니다.
+
+### 문제 8: Mermaid 다이어그램 다크모드 가독성
+
+블로그를 다크모드로 설정했는데(`theme_mode: dark`), Mermaid 다이어그램에서 **텍스트가 보이지 않는 문제**가 발생했습니다.
+
+**증상:**
+
+```mermaid
+graph TD
+    A[로컬 개발] --> B[Git Push]
+    B --> C[GitHub Actions]
+```
+
+다크모드의 기본 텍스트 색상(회백색)이 Mermaid 다이어그램의 밝은 배경 박스에서는 거의 보이지 않았습니다.
+
+**고려한 해결 방법 1: CSS 전역 설정**
+
+```scss
+// assets/css/jekyll-theme-chirpy.scss
+.mermaid {
+  text {
+    fill: #000 !important;  // 모든 Mermaid 텍스트를 검은색으로
+  }
+
+  rect {
+    fill: #f0f0f0 !important;  // 모든 박스를 밝은 회색으로
+  }
+}
+```
+
+**CSS 방식의 문제점:**
+- 모든 다이어그램에 동일한 스타일이 강제 적용
+- 다이어그램마다 다른 색상이 필요할 때 대응 불가
+- 라이트/다크 모드 전환 시 CSS 충돌 가능
+- 나중에 다른 색상이 필요하면 CSS를 오버라이드해야 하는 번거로움
+
+**최종 해결책: Mermaid 코드 내 직접 스타일 지정**
+
+각 다이어그램 코드 내에서 `style` 또는 `classDef`로 직접 스타일을 지정하기로 결정했습니다. Mermaid 코드 블록 안에서 `style 노드ID fill:#색상,color:#텍스트색` 형식으로 각 노드의 배경색과 텍스트 색상을 지정할 수 있습니다.
+
+**이 방식의 장점:**
+- ✅ 각 다이어그램마다 필요한 색상만 정확히 적용
+- ✅ 코드만 보고 어떻게 렌더링될지 예측 가능
+- ✅ 다이어그램 타입별로 다른 스타일 자유롭게 적용
+- ✅ CSS 파일 관리 불필요
+- ✅ 글 작성자가 의도한 색상으로 정확히 표현
+
+**CSS 파일에 방침 명시:**
+
+나중에 팀원들이 "왜 Mermaid CSS가 없지?"라고 궁금해할 수 있으므로 주석으로 방침을 명시했습니다:
+
+```scss
+---
+---
+
+@import 'main';
+
+/* Custom CSS - 코드 블록은 기본 동작(수평 스크롤) 유지 */
+
+/* Mermaid: prefer per-diagram styling via `style`/`classDef` in Mermaid code */
+```
+{: file="assets/css/jekyll-theme-chirpy.scss" }
+
+**결과:**
+
+이제 각 다이어그램에서 필요한 색상을 직접 지정하여 다크모드에서도 가독성 좋은 다이어그램을 표시할 수 있습니다.
+
+```mermaid
+graph TD
+    A[문제 발생] --> B[원인 분석]
+    B --> C[해결책 탐색]
+    C --> D[최적 방법 선택]
+    D --> E[문서화]
+
+    style A fill:#ffcdd2,color:#0b0f14
+    style B fill:#fff9c4,color:#0b0f14
+    style C fill:#c8e6c9,color:#0b0f14
+    style D fill:#bbdefb,color:#0b0f14
+    style E fill:#e1bee7,color:#0b0f14
+```
+
 ## 5. 최종 구성
 
 ### Gemfile 전체 코드 (주석 포함)
@@ -381,11 +914,11 @@ jobs:
 ```ruby
 source "https://rubygems.org"
 
-# Jekyll 코어 (4.3 버전 사용)
+# Jekyll 코어 (4.3 버전 사용, 설치된 버전: 4.4.1)
 gem "jekyll", "~> 4.3"
 
 # Chirpy 테마 (gem 방식으로 설치)
-gem "jekyll-theme-chirpy", "~> 7.4"
+gem "jekyll-theme-chirpy", "~> 7.4"  # 설치된 버전: 7.4.1
 
 # 필수 Jekyll 플러그인
 gem "jekyll-paginate"        # 페이지네이션 (게시물 목록 페이징)
@@ -533,6 +1066,11 @@ plugins:
 
 kramdown:
   syntax_highlighter: rouge  # 코드 하이라이팅
+  syntax_highlighter_opts:
+    default_lang: plaintext
+    line_numbers: false      # 인라인 코드에는 줄 번호 없음
+    block:
+      line_numbers: true     # 코드 블록에만 줄 번호 표시
 
 # ========================================
 # Collections (탭 메뉴)
@@ -595,7 +1133,7 @@ romantic-coders.github.io/
 
 ### .gitignore 설정
 
-```gitignore
+```plaintext
 # Bundler 캐시 (로컬 gem 설치 디렉토리)
 .bundle
 vendor
@@ -635,6 +1173,7 @@ assets/js/dist                   # 빌드된 JavaScript
 *.bak
 *.backup
 ```
+{: file=".gitignore" }
 
 ## 6. 블로그 게시물 작성 가이드
 
@@ -680,76 +1219,20 @@ tags: [docker, container, deployment]    # 태그 (여러 개 가능)
 
 #### 3. 본문 작성
 
-Front Matter 아래에 Markdown으로 본문을 작성합니다:
+Front Matter 아래에 Markdown으로 본문을 작성합니다. 기본적인 마크다운 문법을 사용하여 제목, 본문, 코드 블록, 링크 등을 작성할 수 있습니다.
 
-```markdown
----
-title: "Docker 기초부터 실전까지"
-author: KeunyoungSong
-date: 2025-01-05 14:30:00 +0900
-categories: [개발, DevOps]
-tags: [docker, container]
----
+**마크다운 문법 예시:**
 
-# Docker란?
+- `# H1 제목`, `## H2 제목`, `### H3 제목` - 제목
+- `**굵은 글씨**`, `*기울임*` - 텍스트 강조
+- `- 항목` 또는 `1. 항목` - 목록
+- `[링크 텍스트](URL)` - 링크
+- ` ```언어` + 코드 + ` ``` ` - 코드 블록
 
-Docker는 컨테이너 기반의 가상화 플랫폼입니다.
-
-## 주요 개념
-
-### 이미지
-이미지는 컨테이너의 템플릿입니다.
-
-### 컨테이너
-실행 중인 이미지 인스턴스입니다.
-
-## 코드 예시
-
-```bash
-# Docker 이미지 빌드
-docker build -t myapp:latest .
-
-# 컨테이너 실행
-docker run -p 8080:80 myapp:latest
-```
-
-> 팁: 로컬에서 먼저 테스트해보세요!
-
-더 자세한 내용은 [공식 문서](https://docs.docker.com)를 참고하세요.
-```
-
-**Markdown 팁:**
-
-```markdown
-# H1 제목
-## H2 제목
-### H3 제목
-
-**굵은 글씨**
-*기울임*
-
-- 순서 없는 목록
-- 항목 2
-
-1. 순서 있는 목록
-2. 항목 2
-
-[링크 텍스트](https://example.com)
-
-![이미지 설명](/path/to/image.jpg)
-
-> 인용문
-
-`인라인 코드`
-
-```language
-코드 블록
-```
-
-| 표 | 헤더 |
-|---|---|
-| 셀1 | 셀2 |
-```
+- `![이미지 설명](/path/to/image.jpg)` - 이미지
+- `> 인용문` - 인용
+- `` `인라인 코드` `` - 인라인 코드
+- 표 작성: 파이프(`|`)와 하이픈(`-`)으로 구성
 
 ### 로컬 테스트
 
@@ -809,10 +1292,10 @@ graph LR
     B --> C[배포 완료]
     C --> D[웹사이트 확인<br/>1-2분 후]
 
-    style A fill:#e1f5fe
-    style B fill:#fff9c4
-    style C fill:#c8e6c9
-    style D fill:#c8e6c9
+    style A fill:#e1f5fe,color:#0b0f14
+    style B fill:#fff9c4,color:#0b0f14
+    style C fill:#c8e6c9,color:#0b0f14
+    style D fill:#c8e6c9,color:#0b0f14
 ```
 
 **확인 방법:**
@@ -955,42 +1438,6 @@ GitHub Actions는 단순히 "자동 배포 도구"를 넘어서는 강력한 CI/
 4. **Secrets 관리**: 민감한 정보를 안전하게 관리
 
 특히 `bundler-cache: true` 한 줄로 빌드 시간을 절반으로 줄일 수 있었던 점이 놀라웠습니다.
-
-### 문서화와 공유의 중요성
-
-이번 블로그 구축 과정에서 가장 큰 도움이 된 것은 **다른 개발자들의 트러블슈팅 기록**이었습니다.
-
-- Stack Overflow의 질문과 답변
-- GitHub Issues의 해결 과정
-- 개인 블로그의 회고 글
-
-이러한 문서들이 없었다면 각 에러를 해결하는 데 훨씬 더 많은 시간이 걸렸을 것입니다. 이번 경험을 통해 **내가 겪은 문제를 공유하는 것이 미래의 누군가에게 큰 도움이 될 수 있다**는 것을 깨달았습니다.
-
-그래서 이 글을 최대한 상세하게 작성했습니다. 같은 문제를 겪는 분들께 도움이 되길 바랍니다.
-
-### 시행착오를 통한 학습
-
-이번 프로젝트에서 가장 값진 교훈은 **실패를 두려워하지 않는 것**입니다.
-
-**실패의 가치:**
-- Jekyll 3.10 → 4.3 전환 실패 → Jekyll 버전 호환성 이해
-- remote_theme 실패 → gem 기반 테마의 장점 발견
-- 플러그인 누락 → 의존성 관리의 중요성 인식
-
-각각의 실패는 단순한 에러가 아니라 **시스템을 더 깊이 이해하는 기회**였습니다. 에러 메시지를 읽고, 로그를 분석하고, 공식 문서를 찾아보는 과정에서 Jekyll과 GitHub Actions의 내부 작동 방식을 배울 수 있었습니다.
-
-**실패에서 배운 접근법:**
-1. 에러 메시지를 정확히 읽기
-2. 공식 문서 먼저 확인하기
-3. 커뮤니티 검색하기 (GitHub Issues, Stack Overflow)
-4. 최소한의 변경으로 테스트하기
-5. 성공한 설정 백업하기
-
-### 마치며
-
-Jekyll + Chirpy + GitHub Pages로 팀 블로그를 구축하는 과정은 쉽지 않았지만, 그만큼 많은 것을 배울 수 있는 여정이었습니다. 이제 우리 팀은 **안정적인 기술 블로그 플랫폼**을 갖추게 되었고, 앞으로 이곳에서 다양한 개발 경험과 인사이트를 공유할 예정입니다.
-
-이 글이 Jekyll 블로그를 만들려는 분들, 특히 Chirpy 테마를 사용하려는 분들께 도움이 되길 바랍니다. 궁금한 점이나 추가로 도움이 필요하신 부분이 있다면 댓글로 남겨주세요!
 
 ---
 
