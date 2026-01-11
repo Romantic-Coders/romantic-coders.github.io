@@ -76,6 +76,10 @@ toc: true
 paginate: 10
 markdown: kramdown
 
+# Custom scripts
+head_scripts:
+  - /assets/js/mermaid-init.js
+
 plugins:
   - jekyll-paginate
   - jekyll-sitemap

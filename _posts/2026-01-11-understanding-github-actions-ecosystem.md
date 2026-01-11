@@ -437,9 +437,9 @@ graph TB
     D -->|4. CDN 배포| E
     E -->|5. HTTPS| F[사용자 브라우저]
 
-    style C fill:#f9f,stroke:#333
-    style D fill:#bbf,stroke:#333
-    style B fill:#bfb,stroke:#333
+    style C fill:#c026d3,stroke:#e879f9,color:#ffffff
+    style D fill:#6366f1,stroke:#818cf8,color:#ffffff
+    style B fill:#10b981,stroke:#34d399,color:#ffffff
 ```
 
 ### 5.2 각 구성 요소 설명
